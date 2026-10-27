@@ -2,22 +2,21 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from supabase import create_client, Client
-
-from fdproxy.config import get_supabase_url, get_supabase_service_role_key
+from fdproxy.config import get_supabase_service_role_key, get_supabase_url
 from fdproxy.models import OptionSnapshot, UnderlyingSnapshot
+from supabase import Client, create_client
 
 
 def get_client() -> Client:
     """Get Supabase client with service role."""
     url = get_supabase_url()
     key = get_supabase_service_role_key()
-    
+
     if not url or not key:
         raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set")
-    
+
     return create_client(url, key)
 
 
@@ -26,13 +25,13 @@ def ping() -> bool:
     try:
         client = get_client()
         # Simple query to test connection
-        result = client.table("instruments").select("symbol").limit(1).execute()
+        client.table("instruments").select("symbol").limit(1).execute()
         return True
     except Exception:
         return False
 
 
-def list_tables() -> List[str]:
+def list_tables() -> list[str]:
     """List available tables (via information_schema)."""
     try:
         client = get_client()
@@ -53,13 +52,13 @@ def create_snapshot_run(
 ) -> str:
     """
     Create or update a snapshot run.
-    
+
     Returns run_id (uuid as string).
     """
     client = get_client()
-    
+
     run_id = str(uuid.uuid4())
-    
+
     data = {
         "id": run_id,
         "session_date": session_date.isoformat(),
@@ -70,53 +69,50 @@ def create_snapshot_run(
         "feed_name": feed_name,
         "collector_version": collector_version,
     }
-    
-    result = client.table("snapshot_runs").upsert(
-        data,
-        on_conflict="session_date,slot"
-    ).execute()
-    
+
+    client.table("snapshot_runs").upsert(data, on_conflict="session_date,slot").execute()
+
     return run_id
 
 
 def update_snapshot_run(
     run_id: str,
     status: str,
-    error: Optional[str] = None,
-    meta: Optional[Dict[str, Any]] = None,
+    error: str | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> None:
     """Update snapshot run status."""
     client = get_client()
-    
+
     data = {
         "id": run_id,
         "finished_at": datetime.utcnow().isoformat(),
         "status": status,
     }
-    
+
     if error:
         data["error"] = error
-    
+
     if meta:
         data["meta"] = meta
-    
+
     client.table("snapshot_runs").update(data).eq("id", run_id).execute()
 
 
 def upsert_underlying_snapshots(
     run_id: str,
-    snapshots: List[UnderlyingSnapshot],
+    snapshots: list[UnderlyingSnapshot],
 ) -> int:
     """
     Upsert underlying snapshots.
-    
+
     Returns count of rows affected.
     """
     if not snapshots:
         return 0
-    
+
     client = get_client()
-    
+
     data = []
     for snap in snapshots:
         row = {
@@ -135,35 +131,34 @@ def upsert_underlying_snapshots(
             "raw": snap.raw,
         }
         data.append(row)
-    
-    result = client.table("underlying_snapshots").upsert(
-        data,
-        on_conflict="run_id,symbol"
-    ).execute()
-    
+
+    result = (
+        client.table("underlying_snapshots").upsert(data, on_conflict="run_id,symbol").execute()
+    )
+
     return len(result.data) if result.data else 0
 
 
 def upsert_option_snapshots(
     run_id: str,
-    snapshots: List[OptionSnapshot],
+    snapshots: list[OptionSnapshot],
     batch_size: int = 500,
 ) -> int:
     """
     Upsert option snapshots in batches.
-    
+
     Returns total count of rows affected.
     """
     if not snapshots:
         return 0
-    
+
     client = get_client()
     total = 0
-    
+
     # Process in batches
     for i in range(0, len(snapshots), batch_size):
-        batch = snapshots[i:i + batch_size]
-        
+        batch = snapshots[i : i + batch_size]
+
         data = []
         for snap in batch:
             row = {
@@ -189,12 +184,13 @@ def upsert_option_snapshots(
                 "raw": snap.raw,
             }
             data.append(row)
-        
-        result = client.table("option_snapshots").upsert(
-            data,
-            on_conflict="run_id,symbol,expiry,right,strike"
-        ).execute()
-        
+
+        result = (
+            client.table("option_snapshots")
+            .upsert(data, on_conflict="run_id,symbol,expiry,right,strike")
+            .execute()
+        )
+
         total += len(result.data) if result.data else 0
-    
+
     return total

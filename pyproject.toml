@@ -48,3 +48,11 @@ target-version = ["py311"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.ruff.lint]
+# Ignore specific rules that are too strict for this codebase
+ignore = [
+    "BLE001",  # Do not catch blind exception: `Exception` - needed for CLI error handling
+    "DTZ003",  # datetime.utcnow() used - acceptable in tests and some contexts
+    "SIM102",  # Use single if instead of nested if - style preference
+]

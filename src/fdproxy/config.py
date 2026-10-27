@@ -2,21 +2,20 @@
 
 import os
 from pathlib import Path
-from typing import List
 
 from dotenv import load_dotenv
 
 # Universe constants
-SYMBOLS: List[str] = ["SPY", "QQQ", "SMH", "XLF", "XLE", "HYG"]
+SYMBOLS: list[str] = ["SPY", "QQQ", "SMH", "XLF", "XLE", "HYG"]
 
 # Delta bucket targets
-DELTA_BUCKETS: List[float] = [0.025, 0.05, 0.10, 0.20, 0.30]
+DELTA_BUCKETS: list[float] = [0.025, 0.05, 0.10, 0.20, 0.30]
 
 # Feed identifier
 FEED_NAME: str = "yahoo"
 
 # Snapshot slots (ET)
-SLOTS: List[str] = [
+SLOTS: list[str] = [
     "m0935",
     "m1030",
     "m1200",
@@ -52,4 +51,5 @@ def get_supabase_service_role_key() -> str | None:
 def get_collector_version() -> str:
     """Get collector version."""
     from fdproxy import __version__
+
     return __version__
