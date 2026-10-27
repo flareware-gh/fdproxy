@@ -53,7 +53,7 @@ CREATE TABLE option_snapshots (
     symbol TEXT NOT NULL,
     expiry DATE NOT NULL,
     dte INTEGER,
-    right TEXT NOT NULL,
+    "right" TEXT NOT NULL,
     strike NUMERIC NOT NULL,
     bid NUMERIC,
     ask NUMERIC,
@@ -69,7 +69,7 @@ CREATE TABLE option_snapshots (
     quoted_at TIMESTAMPTZ NOT NULL,
     delay_seconds INTEGER,
     raw JSONB,
-    UNIQUE (run_id, symbol, expiry, right, strike)
+    UNIQUE (run_id, symbol, expiry, "right", strike)
 );
 
 -- Session labels table
@@ -88,9 +88,9 @@ CREATE TABLE session_labels (
 CREATE TABLE contract_outcomes (
     session_date DATE NOT NULL,
     symbol TEXT NOT NULL,
-    right TEXT NOT NULL,
+    "right" TEXT NOT NULL,
     strike NUMERIC NOT NULL,
-    entry_slot TEXT,
+    entry_slot TEXT NOT NULL,
     entry_mid NUMERIC,
     entry_ask NUMERIC,
     max_mid NUMERIC,
@@ -102,7 +102,7 @@ CREATE TABLE contract_outcomes (
     hit_10x BOOLEAN,
     delta_bucket NUMERIC,
     meta JSONB,
-    PRIMARY KEY (session_date, symbol, right, strike, entry_slot)
+    PRIMARY KEY (session_date, symbol, "right", strike, entry_slot)
 );
 
 -- Indexes
@@ -126,12 +126,12 @@ ALTER TABLE contract_outcomes ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role full access (default)
 -- Deny anon writes
-CREATE POLICY "Deny anon writes on instruments" ON instruments FOR INSERT TO anon USING (FALSE);
-CREATE POLICY "Deny anon writes on snapshot_runs" ON snapshot_runs FOR INSERT TO anon USING (FALSE);
-CREATE POLICY "Deny anon writes on underlying_snapshots" ON underlying_snapshots FOR INSERT TO anon USING (FALSE);
-CREATE POLICY "Deny anon writes on option_snapshots" ON option_snapshots FOR INSERT TO anon USING (FALSE);
-CREATE POLICY "Deny anon writes on session_labels" ON session_labels FOR INSERT TO anon USING (FALSE);
-CREATE POLICY "Deny anon writes on contract_outcomes" ON contract_outcomes FOR INSERT TO anon USING (FALSE);
+CREATE POLICY "Deny anon writes on instruments" ON instruments FOR INSERT TO anon WITH CHECK (FALSE);
+CREATE POLICY "Deny anon writes on snapshot_runs" ON snapshot_runs FOR INSERT TO anon WITH CHECK (FALSE);
+CREATE POLICY "Deny anon writes on underlying_snapshots" ON underlying_snapshots FOR INSERT TO anon WITH CHECK (FALSE);
+CREATE POLICY "Deny anon writes on option_snapshots" ON option_snapshots FOR INSERT TO anon WITH CHECK (FALSE);
+CREATE POLICY "Deny anon writes on session_labels" ON session_labels FOR INSERT TO anon WITH CHECK (FALSE);
+CREATE POLICY "Deny anon writes on contract_outcomes" ON contract_outcomes FOR INSERT TO anon WITH CHECK (FALSE);
 
 -- Seed instruments
 INSERT INTO instruments (symbol, name, collect_options, collect_underlying, active) VALUES
