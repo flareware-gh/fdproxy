@@ -1,7 +1,6 @@
 """Black-Scholes Greeks computation."""
 
 import math
-from typing import Optional, Tuple
 
 from scipy.stats import norm
 
@@ -17,7 +16,7 @@ def black_scholes_delta(
 ) -> float:
     """
     Compute Black-Scholes delta.
-    
+
     Args:
         spot: Current underlying price
         strike: Option strike
@@ -26,7 +25,7 @@ def black_scholes_delta(
         div_yield: Dividend yield
         volatility: Implied volatility (annualized)
         option_type: 'C' for call, 'P' for put
-        
+
     Returns:
         Delta value
     """
@@ -36,23 +35,23 @@ def black_scholes_delta(
             return 1.0 if spot > strike else 0.0
         else:
             return -1.0 if spot < strike else 0.0
-    
+
     if volatility <= 0:
         # Intrinsic delta
         if option_type == "C":
             return 1.0 if spot > strike else 0.0
         else:
             return -1.0 if spot < strike else 0.0
-    
-    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * volatility ** 2) * time_to_expiry) / (
+
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * volatility**2) * time_to_expiry) / (
         volatility * math.sqrt(time_to_expiry)
     )
-    
+
     if option_type == "C":
         delta = math.exp(-div_yield * time_to_expiry) * norm.cdf(d1)
     else:  # Put
         delta = -math.exp(-div_yield * time_to_expiry) * norm.cdf(-d1)
-    
+
     return delta
 
 
@@ -67,7 +66,7 @@ def black_scholes_price(
 ) -> float:
     """
     Compute Black-Scholes option price.
-    
+
     Args:
         spot: Current underlying price
         strike: Option strike
@@ -76,7 +75,7 @@ def black_scholes_price(
         div_yield: Dividend yield
         volatility: Implied volatility (annualized)
         option_type: 'C' for call, 'P' for put
-        
+
     Returns:
         Option price
     """
@@ -86,30 +85,28 @@ def black_scholes_price(
             return max(0, spot - strike)
         else:
             return max(0, strike - spot)
-    
+
     if volatility <= 0:
         # Return intrinsic value
         if option_type == "C":
             return max(0, spot - strike)
         else:
             return max(0, strike - spot)
-    
-    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * volatility ** 2) * time_to_expiry) / (
+
+    d1 = (math.log(spot / strike) + (rate - div_yield + 0.5 * volatility**2) * time_to_expiry) / (
         volatility * math.sqrt(time_to_expiry)
     )
     d2 = d1 - volatility * math.sqrt(time_to_expiry)
-    
+
     if option_type == "C":
-        price = (
-            spot * math.exp(-div_yield * time_to_expiry) * norm.cdf(d1)
-            - strike * math.exp(-rate * time_to_expiry) * norm.cdf(d2)
-        )
+        price = spot * math.exp(-div_yield * time_to_expiry) * norm.cdf(d1) - strike * math.exp(
+            -rate * time_to_expiry
+        ) * norm.cdf(d2)
     else:  # Put
-        price = (
-            strike * math.exp(-rate * time_to_expiry) * norm.cdf(-d2)
-            - spot * math.exp(-div_yield * time_to_expiry) * norm.cdf(-d1)
-        )
-    
+        price = strike * math.exp(-rate * time_to_expiry) * norm.cdf(-d2) - spot * math.exp(
+            -div_yield * time_to_expiry
+        ) * norm.cdf(-d1)
+
     return price
 
 
@@ -123,10 +120,10 @@ def implied_volatility_from_price(
     option_type: str,
     max_iterations: int = 100,
     tolerance: float = 1e-6,
-) -> Optional[float]:
+) -> float | None:
     """
     Solve for implied volatility using bisection.
-    
+
     Args:
         option_price: Market price of option
         spot: Current underlying price
@@ -137,40 +134,40 @@ def implied_volatility_from_price(
         option_type: 'C' for call, 'P' for put
         max_iterations: Maximum bisection iterations
         tolerance: Price tolerance
-        
+
     Returns:
         Implied volatility or None if not found
     """
     if option_price <= 0 or time_to_expiry <= 0:
         return None
-    
+
     # Intrinsic value
     if option_type == "C":
         intrinsic = max(0, spot - strike)
     else:
         intrinsic = max(0, strike - spot)
-    
+
     if option_price < intrinsic:
         return None
-    
+
     # Bisection bounds
     vol_low = 0.001
     vol_high = 5.0
-    
+
     for _ in range(max_iterations):
         vol_mid = (vol_low + vol_high) / 2
         price_mid = black_scholes_price(
             spot, strike, time_to_expiry, rate, div_yield, vol_mid, option_type
         )
-        
+
         if abs(price_mid - option_price) < tolerance:
             return vol_mid
-        
+
         if price_mid < option_price:
             vol_low = vol_mid
         else:
             vol_high = vol_mid
-    
+
     # Return best estimate even if not converged
     return (vol_low + vol_high) / 2
 
@@ -183,13 +180,13 @@ def compute_delta_from_mid(
     option_type: str,
     rate: float = 0.0,
     div_yield: float = 0.0,
-) -> Tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """
     Compute delta from mid price.
-    
+
     First attempts to solve for IV and compute BS delta.
     Falls back to intrinsic delta if that fails.
-    
+
     Args:
         mid_price: Option mid price
         spot: Underlying spot price
@@ -198,7 +195,7 @@ def compute_delta_from_mid(
         option_type: 'C' or 'P'
         rate: Risk-free rate
         div_yield: Dividend yield
-        
+
     Returns:
         Tuple of (delta, source) where source is 'bs' or 'intrinsic'
     """
@@ -209,17 +206,15 @@ def compute_delta_from_mid(
         else:
             delta = -1.0 if spot < strike else 0.0
         return delta, "intrinsic"
-    
+
     # Try to solve for IV
     iv = implied_volatility_from_price(
         mid_price, spot, strike, time_to_expiry, rate, div_yield, option_type
     )
-    
+
     if iv is not None and iv > 0:
         # Compute BS delta
-        delta = black_scholes_delta(
-            spot, strike, time_to_expiry, rate, div_yield, iv, option_type
-        )
+        delta = black_scholes_delta(spot, strike, time_to_expiry, rate, div_yield, iv, option_type)
         return delta, "bs"
     else:
         # Fall back to intrinsic

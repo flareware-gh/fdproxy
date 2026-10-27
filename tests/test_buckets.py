@@ -2,8 +2,6 @@
 
 from datetime import date, datetime
 
-import pytest
-
 from fdproxy.buckets import assign_bucket_picks
 from fdproxy.models import OptionSnapshot
 
@@ -63,16 +61,16 @@ def test_assign_bucket_picks_calls():
             quoted_at=datetime.utcnow(),
         ),
     ]
-    
+
     spot = 565.0
-    
+
     assign_bucket_picks(options, spot)
-    
+
     # Check that bucket picks were assigned
     bucket_picks = [opt for opt in options if opt.is_bucket_pick]
     # Should pick one for each bucket target
     assert len(bucket_picks) == 5
-    
+
     # Check delta_bucket values exist in picks
     bucket_values = {opt.delta_bucket for opt in bucket_picks}
     assert 0.025 in bucket_values
@@ -107,11 +105,11 @@ def test_assign_bucket_picks_puts():
             quoted_at=datetime.utcnow(),
         ),
     ]
-    
+
     spot = 565.0
-    
+
     assign_bucket_picks(options, spot)
-    
+
     # Check that bucket picks were assigned
     bucket_picks = [opt for opt in options if opt.is_bucket_pick]
     assert len(bucket_picks) == 2
@@ -143,11 +141,11 @@ def test_assign_bucket_picks_mixed():
             quoted_at=datetime.utcnow(),
         ),
     ]
-    
+
     spot = 565.0
-    
+
     assign_bucket_picks(options, spot)
-    
+
     # Both should be picked
     bucket_picks = [opt for opt in options if opt.is_bucket_pick]
     assert len(bucket_picks) == 2
