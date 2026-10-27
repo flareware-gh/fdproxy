@@ -261,8 +261,8 @@ Outputs heatmaps/tables: P(multiple ≥ 3/5/10) under empirical moves; spread st
 
 ### `collect.yml`
 
-- Cron expressions covering each slot (UTC converted from ET; note DST — use a small “slot auto” workflow every 5–15 min during 13:30–20:05 UTC window that only collects if nearest slot within ±2 min and not yet done).
-- **Preferred design:** one workflow `schedule: "*/10 * * * *"` → `fdproxy collect --slot auto --json`; auto no-ops unless within window of a planned slot and run absent. Avoids maintaining 12 crons + DST bugs.
+- Per-slot cron expressions covering each slot (UTC converted from ET; note DST — these are EDT times, will need updating for EST).
+- **Implemented design:** separate cron entries for each slot → `fdproxy collect --slot auto --json` at each target time; auto finds nearest slot within ±10 minutes.
 - Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
 - Setup: checkout, Python, `pip install -e .`, run collect, upload logs on failure.
 

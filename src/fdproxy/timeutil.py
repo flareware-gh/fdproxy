@@ -53,6 +53,7 @@ def find_nearest_slot(dt: datetime | None = None) -> str | None:
     Find the nearest planned slot to the given time (or now).
 
     Returns None if outside reasonable collection window or on weekend.
+    Accepts slots within ±10 minutes of the target time.
     """
     if dt is None:
         dt = now_et()
@@ -63,7 +64,7 @@ def find_nearest_slot(dt: datetime | None = None) -> str | None:
 
     current_time = dt.time()
 
-    # Find nearest slot within ±5 minutes
+    # Find nearest slot within ±10 minutes
     min_delta = None
     nearest = None
 
@@ -76,7 +77,7 @@ def find_nearest_slot(dt: datetime | None = None) -> str | None:
 
         delta = abs(current_mins - slot_mins)
 
-        if delta <= 5:  # Within 5 minutes
+        if delta <= 10:  # Within 10 minutes
             if min_delta is None or delta < min_delta:
                 min_delta = delta
                 nearest = slot

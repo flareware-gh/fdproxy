@@ -2,10 +2,21 @@ name: Collect 0DTE Data
 
 on:
   schedule:
-    # Run every 10 minutes during market hours (UTC)
-    # Covers 09:30-16:00 ET = 14:30-21:00 UTC (EST) or 13:30-20:00 UTC (EDT)
-    # Using */10 during the broader window to handle DST transitions
-    - cron: '*/10 13-21 * * 1-5'
+    # Per-slot cron schedules using EDT (UTC-4)
+    # Note: These times are for Eastern Daylight Time. When switching to EST (UTC-5),
+    # these will need updating to add 1 hour to each UTC time.
+    - cron: '35 13 * * 1-5'  # m0935 at 13:35 UTC
+    - cron: '30 14 * * 1-5'  # m1030 at 14:30 UTC
+    - cron: '0 16 * * 1-5'   # m1200 at 16:00 UTC
+    - cron: '0 18 * * 1-5'   # m1400 at 18:00 UTC
+    - cron: '45 18 * * 1-5'  # m1445 at 18:45 UTC
+    - cron: '0 19 * * 1-5'   # t1500 at 19:00 UTC
+    - cron: '15 19 * * 1-5'  # t1515 at 19:15 UTC
+    - cron: '30 19 * * 1-5'  # t1530 at 19:30 UTC
+    - cron: '45 19 * * 1-5'  # t1545 at 19:45 UTC
+    - cron: '50 19 * * 1-5'  # t1550 at 19:50 UTC
+    - cron: '55 19 * * 1-5'  # t1555 at 19:55 UTC
+    - cron: '0 20 * * 1-5'   # close at 20:00 UTC
   
   workflow_dispatch:
     inputs:
@@ -40,19 +51,22 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ -n "${{ github.event.inputs.slot }}" ]; then
-            SLOT_ARG="--slot ${{ github.event.inputs.slot }}"
-          else
-            SLOT_ARG="--slot auto"
+          SLOT="${{ github.event.inputs.slot }}"
+          if [ -z "$SLOT" ]; then
+            SLOT="auto"
           fi
           
-          if [ -n "${{ github.event.inputs.symbols }}" ]; then
-            SYMBOLS_ARG="--symbols ${{ github.event.inputs.symbols }}"
+          SYMBOLS="${{ github.event.inputs.symbols }}"
+          if [ -n "$SYMBOLS" ]; then
+            SYMBOLS_ARG="--symbols $SYMBOLS"
           else
             SYMBOLS_ARG=""
           fi
           
-          fdproxy collect $SLOT_ARG $SYMBOLS_ARG --json | tee collect_output.json
+          fdproxy collect --slot "$SLOT" $SYMBOLS_ARG --json | tee collect_output.json
+          
+          # Ensure the job fails if collect reported an error
+          exit ${PIPESTATUS[0]}
       
       - name: Upload logs on failure
         if: failure()
