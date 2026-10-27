@@ -28,28 +28,102 @@ Delayed chains are acceptable for research purposes. Every stored row is tagged 
 - **[PLAN.md](PLAN.md)** — Full project plan: goals, research architecture, phases, snapshot schedule, and data honesty principles
 - **[SCHEMA.md](SCHEMA.md)** — Supabase database schema for instruments, snapshots, labels, and contract outcomes
 
-## CLI (to be built)
+## Installation
 
-An agent-friendly command-line interface will provide:
+```bash
+# Clone the repository
+git clone https://github.com/flareware-gh/fdproxy.git
+cd fdproxy
 
-- `fdproxy collect` — Pull underlyings + 0DTE strips and write to Supabase
-- `fdproxy status` — Report last runs, missing slots, row counts
-- `fdproxy simulate` — Replay stored snapshots → mid paths, multiples, delta buckets
-- `fdproxy study` — Run feasibility and convexity analyses
-- `fdproxy doctor` — Check environment, feed connectivity, Supabase health
+# Install in development mode
+pip install -e .
 
-All commands will support `--json` output for machine parsing. Implementation details will be documented in `docs/cli.md` once built.
+# Copy environment template and configure
+cp .env.example .env
+# Edit .env with your Supabase credentials
+```
+
+## CLI Usage
+
+The CLI provides agent-friendly commands with `--json` output support.
+
+### Doctor - Validate Environment
+
+Check Python version, dependencies, Supabase connectivity, and Yahoo Finance access:
+
+```bash
+# Human-readable output
+fdproxy doctor
+
+# JSON output for agents
+fdproxy doctor --json
+```
+
+### Collect - Gather Market Data
+
+Collect underlying quotes and 0DTE option chains:
+
+```bash
+# Collect for a specific slot
+fdproxy collect --slot t1530
+
+# Auto-detect nearest slot (within ±5 minutes)
+fdproxy collect --slot auto
+
+# Collect specific symbols only
+fdproxy collect --symbols SPY,QQQ --slot t1530
+
+# Dry run (no database writes)
+fdproxy collect --slot t1530 --dry-run
+
+# JSON output for agents
+fdproxy collect --slot auto --json
+
+# Strict mode (fail if any symbol errors)
+fdproxy collect --slot t1530 --strict
+```
+
+### Status - View Collection Health
+
+```bash
+fdproxy status
+fdproxy status --days 3 --json
+```
+
+### Simulate - Analyze Option Paths
+
+```bash
+fdproxy simulate --from 2026-10-27 --to 2026-11-27
+fdproxy simulate --from 2026-10-27 --to 2026-11-27 --entry-slot t1530 --json
+```
+
+### Study - Run Research Analyses
+
+```bash
+fdproxy study feasibility
+fdproxy study convexity
+```
+
+All commands support:
+- `--json` for machine-readable output
+- `--env-file` to specify custom .env path
+- `-v` / `--verbose` for detailed logging
 
 ## Project Status
 
-**Phase 0 — Planning**  
-Documentation complete. Next steps:
-1. Apply Supabase migrations
-2. Scaffold CLI (`collect` / `status` / `doctor`)
-3. Wire GitHub Actions for automated collection
-4. Begin Phase 1 feasibility studies
+**Phase 0 — Bootstrap (In Progress)**  
+- ✅ Documentation complete (PLAN.md, SCHEMA.md)
+- ✅ CLI scaffolded with Typer
+- ✅ `fdproxy doctor` working (environment validation)
+- ✅ `fdproxy collect` implemented (Yahoo Finance + delta buckets)
+- ✅ Supabase migration ready (`supabase/migrations/001_init.sql`)
+- ✅ GitHub Actions workflows (CI + automated collection)
+- ✅ Unit tests with pytest
 
-No collector, migrations, or GitHub Actions implemented yet.
+Next steps:
+1. Apply Supabase migration to live project
+2. Test collection with real market data
+3. Begin Phase 1 feasibility studies
 
 ## License
 
