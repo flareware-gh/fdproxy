@@ -3,6 +3,8 @@
 Project: `FDProxy` / `lwfpttiwijynwbjekaxo`  
 Business timezone: `America/New_York`. Store `timestamptz` in UTC.
 
+**Note:** The column `right` is a Postgres reserved keyword and is quoted as `"right"` in SQL DDL. PostgREST and client libraries reference it as `right` (unquoted) in JSON payloads.
+
 ## Tables
 
 ### `instruments`
@@ -62,7 +64,7 @@ Full strip (or near strip) each run; delta buckets are derived or tagged.
 | symbol | text | |
 | expiry | date | 0DTE ⇒ session_date |
 | dte | int | |
-| right | text | `C` \| `P` |
+| right | text | `C` \| `P` (SQL: `"right"` quoted) |
 | strike | numeric | |
 | bid | numeric | |
 | ask | numeric | |
@@ -79,7 +81,7 @@ Full strip (or near strip) each run; delta buckets are derived or tagged.
 | delay_seconds | int | |
 | raw | jsonb | |
 
-Unique: `(run_id, symbol, expiry, right, strike)`.
+Unique: `(run_id, symbol, expiry, "right", strike)`.
 
 ### `session_labels`
 | Column | Type | Notes |
@@ -101,9 +103,9 @@ Path stats for bucket picks (and optionally all strikes).
 |--------|------|--------|
 | session_date | date | |
 | symbol | text | |
-| right | text | |
+| right | text | `C` \| `P` (SQL: `"right"` quoted) |
 | strike | numeric | |
-| entry_slot | text | e.g. `t1530` |
+| entry_slot | text NOT NULL | e.g. `t1530` (required for PK) |
 | entry_mid | numeric | |
 | entry_ask | numeric | |
 | max_mid | numeric | through close |
