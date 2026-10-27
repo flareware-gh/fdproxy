@@ -48,15 +48,17 @@ def test_is_rth():
 
 def test_find_nearest_slot():
     """Test finding nearest slot."""
-    # Near t1530
+    # Near t1530 (within 1 minute)
     near_slot = ET.localize(datetime(2026, 10, 27, 15, 31))
     assert find_nearest_slot(near_slot) == "t1530"
 
-    # Far from any slot
+    # 8 minutes from m1200 - should match with ±10 min window
+    near_m1200 = ET.localize(datetime(2026, 10, 27, 12, 8))
+    assert find_nearest_slot(near_m1200) == "m1200"
+
+    # Far from any slot (more than 10 minutes)
     far_slot = ET.localize(datetime(2026, 10, 27, 12, 30))
-    # Should return None or m1200 depending on distance
-    result = find_nearest_slot(far_slot)
-    assert result is None or result == "m1200"
+    assert find_nearest_slot(far_slot) is None
 
     # Weekend
     weekend = ET.localize(datetime(2026, 10, 31, 15, 30))

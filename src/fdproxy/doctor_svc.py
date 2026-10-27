@@ -138,7 +138,7 @@ def check_time_info() -> DoctorCheck:
         if nearest_slot:
             detail_parts.append(f"Nearest slot: {nearest_slot}")
         else:
-            detail_parts.append("No slot within ±5min")
+            detail_parts.append("No slot within ±10min")
 
         return DoctorCheck(name="time_info", ok=True, detail=", ".join(detail_parts))
     except Exception as e:

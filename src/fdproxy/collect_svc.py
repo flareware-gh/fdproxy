@@ -46,7 +46,7 @@ def run_collect(
         resolved_slot = find_nearest_slot(now)
         if resolved_slot is None:
             raise ValueError(
-                "No slot within ±5 minutes; use explicit --slot or wait for collection window"
+                "No slot within ±10 minutes; use explicit --slot or wait for collection window"
             )
     else:
         resolved_slot = slot
