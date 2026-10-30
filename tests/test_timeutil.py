@@ -47,18 +47,27 @@ def test_is_rth():
 
 
 def test_find_nearest_slot():
-    """Test finding nearest slot."""
+    """Test finding nearest slot with default ±30 min window."""
     # Near t1530 (within 1 minute)
     near_slot = ET.localize(datetime(2026, 10, 27, 15, 31))
     assert find_nearest_slot(near_slot) == "t1530"
 
-    # 8 minutes from m1200 - should match with ±10 min window
+    # 8 minutes from m1200 - should match with ±30 min window
     near_m1200 = ET.localize(datetime(2026, 10, 27, 12, 8))
     assert find_nearest_slot(near_m1200) == "m1200"
 
-    # Far from any slot (more than 10 minutes)
-    far_slot = ET.localize(datetime(2026, 10, 27, 12, 30))
+    # 25 minutes from close (16:00) - should match close within ±30 min window
+    within_30 = ET.localize(datetime(2026, 10, 27, 15, 35))
+    assert find_nearest_slot(within_30) == "t1530"
+
+    # Far from any slot (more than 30 minutes)
+    far_slot = ET.localize(datetime(2026, 10, 27, 12, 45))
     assert find_nearest_slot(far_slot) is None
+
+    # Test with custom window (stricter ±10 min)
+    far_with_strict = ET.localize(datetime(2026, 10, 27, 12, 25))
+    assert find_nearest_slot(far_with_strict, window_minutes=10) is None
+    assert find_nearest_slot(far_with_strict, window_minutes=30) == "m1200"
 
     # Weekend
     weekend = ET.localize(datetime(2026, 10, 31, 15, 30))

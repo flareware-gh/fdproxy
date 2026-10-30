@@ -81,6 +81,8 @@ Everything important is a **CLI** a human or any agent can run with clear flags,
 
 ## 7. Snapshot schedule (ET, RTH only)
 
+**Timestamp-first collection:** Slots are soft labels for analysis cohorts, not gates. The collector fires on an interval, always saves (except holidays), and keeps duplicates/near-duplicates. Time cohorts are assigned later in analysis based on actual request timestamps.
+
 Denser afternoon, plus earlier calibration chunks:
 
 | Slot | Target (ET) | Cadence idea |
@@ -98,7 +100,7 @@ Denser afternoon, plus earlier calibration chunks:
 | `t1555` | 15:55 | |
 | `close` | 16:00 | Last quote / settle proxy |
 
-GitHub Actions: cron (or scheduled workflow) invoking `fdproxy collect --slot auto` on a grid that covers these times (Actions minute resolution is coarse — accept ±1–2 min skew; record `scheduled_at` vs `started_at`). Holidays/weekends → `skipped_holiday`.
+GitHub Actions: cron (or scheduled workflow) invoking `fdproxy collect` on an interval grid. Slot labels are assigned as nearest planned slot if within ±30 min, else null — never an error. Actions minute resolution is coarse (GitHub Actions cron wakes late/irregularly) — accept skew; record `scheduled_at`, `started_at`, `request_started_at`, `request_finished_at`, `intended_at`, `trigger_source`, `trigger_id`. Holidays/weekends → `skipped_holiday`.
 
 ## 8. Phases
 

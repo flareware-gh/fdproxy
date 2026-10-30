@@ -50,6 +50,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           SLOT="${{ github.event.inputs.slot }}"
           if [ -z "$SLOT" ]; then
@@ -63,7 +64,12 @@ jobs:
             SYMBOLS_ARG=""
           fi
           
-          fdproxy collect --slot "$SLOT" $SYMBOLS_ARG --json | tee collect_output.json
+          # Pass trigger metadata; GITHUB_RUN_ID is picked up from env
+          fdproxy collect \
+            --slot "$SLOT" \
+            $SYMBOLS_ARG \
+            --trigger-source github_actions \
+            --json | tee collect_output.json
           
           # Ensure the job fails if collect reported an error
           exit ${PIPESTATUS[0]}
