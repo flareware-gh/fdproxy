@@ -1,6 +1,6 @@
 """Time utilities for ET session dates, slots, and schedules."""
 
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
 import pytz
 
@@ -119,3 +119,42 @@ def is_market_holiday(date_obj) -> bool:
     if hasattr(date_obj, "weekday"):
         return date_obj.weekday() >= 5
     return False
+
+
+def request_label_from_dt(dt: datetime) -> str:
+    """
+    Generate 5-minute request label from datetime.
+
+    Converts to ET, floors minute to nearest 5-minute bucket, formats as rqHHmmtoHHmm
+    where the second time is the last included minute of the half-open window [start, start+5min).
+
+    Examples:
+        2026-10-30 10:30:17 ET → 'rq1030to1034'
+        2026-10-30 15:09:47 ET → 'rq1505to1509'
+        2026-10-30 14:39:45 ET → 'rq1435to1439'
+        2026-10-30 16:10:51 ET → 'rq1610to1614'
+
+    Args:
+        dt: Datetime to convert (any timezone or naive)
+
+    Returns:
+        Request label string in format rqHHmmtoHHmm
+    """
+    # Convert to ET
+    if dt.tzinfo is None:
+        dt_et = ET.localize(dt)
+    else:
+        dt_et = dt.astimezone(ET)
+
+    # Floor minute to nearest 5-minute bucket
+    floored_minute = (dt_et.minute // 5) * 5
+    start_time = dt_et.replace(minute=floored_minute, second=0, microsecond=0)
+
+    # End time is start + 5 minutes (half-open interval, so we show start+4 as the "to" minute)
+    end_time = start_time + timedelta(minutes=4)
+
+    # Format as rqHHmmtoHHmm
+    start_str = start_time.strftime("%H%M")
+    end_str = end_time.strftime("%H%M")
+
+    return f"rq{start_str}to{end_str}"

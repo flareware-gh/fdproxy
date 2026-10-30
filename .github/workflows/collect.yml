@@ -2,28 +2,25 @@ name: Collect 0DTE Data
 
 on:
   schedule:
-    # Per-slot cron schedules using EDT (UTC-4)
+    # Collection schedule using EDT (UTC-4)
     # Note: These times are for Eastern Daylight Time. When switching to EST (UTC-5),
     # these will need updating to add 1 hour to each UTC time.
-    - cron: '35 13 * * 1-5'  # m0935 at 13:35 UTC
-    - cron: '30 14 * * 1-5'  # m1030 at 14:30 UTC
-    - cron: '0 16 * * 1-5'   # m1200 at 16:00 UTC
-    - cron: '0 18 * * 1-5'   # m1400 at 18:00 UTC
-    - cron: '45 18 * * 1-5'  # m1445 at 18:45 UTC
-    - cron: '0 19 * * 1-5'   # t1500 at 19:00 UTC
-    - cron: '15 19 * * 1-5'  # t1515 at 19:15 UTC
-    - cron: '30 19 * * 1-5'  # t1530 at 19:30 UTC
-    - cron: '45 19 * * 1-5'  # t1545 at 19:45 UTC
-    - cron: '50 19 * * 1-5'  # t1550 at 19:50 UTC
-    - cron: '55 19 * * 1-5'  # t1555 at 19:55 UTC
-    - cron: '0 20 * * 1-5'   # close at 20:00 UTC
+    # Request labels are derived from request_started_at timestamp (5-min buckets in ET)
+    - cron: '35 13 * * 1-5'  # 09:35 ET
+    - cron: '30 14 * * 1-5'  # 10:30 ET
+    - cron: '0 16 * * 1-5'   # 12:00 ET
+    - cron: '0 18 * * 1-5'   # 14:00 ET
+    - cron: '45 18 * * 1-5'  # 14:45 ET
+    - cron: '0 19 * * 1-5'   # 15:00 ET
+    - cron: '15 19 * * 1-5'  # 15:15 ET
+    - cron: '30 19 * * 1-5'  # 15:30 ET
+    - cron: '45 19 * * 1-5'  # 15:45 ET
+    - cron: '50 19 * * 1-5'  # 15:50 ET
+    - cron: '55 19 * * 1-5'  # 15:55 ET
+    - cron: '0 20 * * 1-5'   # 16:00 ET (close)
   
   workflow_dispatch:
     inputs:
-      slot:
-        description: 'Slot to collect (or auto)'
-        required: false
-        default: 'auto'
       symbols:
         description: 'Symbols to collect (comma-separated, or empty for all)'
         required: false
@@ -52,11 +49,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
-          SLOT="${{ github.event.inputs.slot }}"
-          if [ -z "$SLOT" ]; then
-            SLOT="auto"
-          fi
-          
           SYMBOLS="${{ github.event.inputs.symbols }}"
           if [ -n "$SYMBOLS" ]; then
             SYMBOLS_ARG="--symbols $SYMBOLS"
@@ -65,8 +57,8 @@ jobs:
           fi
           
           # Pass trigger metadata; GITHUB_RUN_ID is picked up from env
+          # request_label is derived from request_started_at timestamp
           fdproxy collect \
-            --slot "$SLOT" \
             $SYMBOLS_ARG \
             --trigger-source github_actions \
             --json | tee collect_output.json
