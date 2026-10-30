@@ -44,7 +44,7 @@ def list_tables() -> list[str]:
 
 def create_snapshot_run(
     session_date: date,
-    intended_slot: str | None,
+    request_label: str | None,
     scheduled_at: datetime,
     feed_name: str,
     collector_version: str,
@@ -65,7 +65,7 @@ def create_snapshot_run(
     data = {
         "id": run_id,
         "session_date": session_date.isoformat(),
-        "intended_slot": intended_slot,
+        "request_label": request_label,
         "scheduled_at": scheduled_at.isoformat(),
         "started_at": datetime.utcnow().isoformat(),
         "status": status,

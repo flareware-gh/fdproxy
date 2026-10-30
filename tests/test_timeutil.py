@@ -7,6 +7,7 @@ from fdproxy.timeutil import (
     find_nearest_slot,
     get_session_date,
     is_rth,
+    request_label_from_dt,
     slot_to_time,
 )
 
@@ -72,3 +73,50 @@ def test_find_nearest_slot():
     # Weekend
     weekend = ET.localize(datetime(2026, 10, 31, 15, 30))
     assert find_nearest_slot(weekend) is None
+
+
+def test_request_label_from_dt():
+    """Test request label generation from datetime."""
+    # Test exact hour boundary (:00)
+    dt_1030 = ET.localize(datetime(2026, 10, 30, 10, 30, 17))
+    assert request_label_from_dt(dt_1030) == "rq1030to1034"
+
+    # Test :04 (last minute of window)
+    dt_1004 = ET.localize(datetime(2026, 10, 30, 10, 4, 59))
+    assert request_label_from_dt(dt_1004) == "rq1000to1004"
+
+    # Test :05 (first minute of next window)
+    dt_1005 = ET.localize(datetime(2026, 10, 30, 10, 5, 0))
+    assert request_label_from_dt(dt_1005) == "rq1005to1009"
+
+    # Test :59 (near next hour)
+    dt_1459 = ET.localize(datetime(2026, 10, 30, 14, 59, 45))
+    assert request_label_from_dt(dt_1459) == "rq1455to1459"
+
+    # Test mid-window
+    dt_1507 = ET.localize(datetime(2026, 10, 30, 15, 9, 47))
+    assert request_label_from_dt(dt_1507) == "rq1505to1509"
+
+    # Test late afternoon
+    dt_1439 = ET.localize(datetime(2026, 10, 30, 14, 39, 45))
+    assert request_label_from_dt(dt_1439) == "rq1435to1439"
+
+    # Test close time
+    dt_1610 = ET.localize(datetime(2026, 10, 30, 16, 10, 51))
+    assert request_label_from_dt(dt_1610) == "rq1610to1614"
+
+    # Test morning slots
+    dt_0935 = ET.localize(datetime(2026, 10, 30, 9, 35, 0))
+    assert request_label_from_dt(dt_0935) == "rq0935to0939"
+
+    dt_0937 = ET.localize(datetime(2026, 10, 30, 9, 37, 22))
+    assert request_label_from_dt(dt_0937) == "rq0935to0939"
+
+    # Test Friday examples
+    # Friday 10:32 -> rq1030to1034
+    dt_fri_1032 = ET.localize(datetime(2026, 10, 30, 10, 32, 15))
+    assert request_label_from_dt(dt_fri_1032) == "rq1030to1034"
+
+    # Friday 15:28 -> rq1525to1529
+    dt_fri_1528 = ET.localize(datetime(2026, 10, 30, 15, 28, 44))
+    assert request_label_from_dt(dt_fri_1528) == "rq1525to1529"

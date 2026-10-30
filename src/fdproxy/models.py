@@ -12,7 +12,6 @@ class TriggerEnvelope(BaseModel):
     trigger_source: str | None = None
     trigger_id: str | None = None
     intended_at: datetime | None = None
-    intended_slot: str | None = None
     symbols: list[str] | None = None
 
 
@@ -80,7 +79,7 @@ class CollectResult(BaseModel):
     """Result of a collect operation."""
 
     session_date: date
-    intended_slot: str | None
+    request_label: str | None
     status: str
     symbols_attempted: list[str]
     symbols_success: list[str]

@@ -22,7 +22,7 @@ Business timezone: `America/New_York`. Store `timestamptz` in UTC.
 |--------|------|--------|
 | id | uuid PK | |
 | session_date | date | ET calendar date |
-| intended_slot | text (nullable) | soft label (`m0935`…`close`); nearest planned slot or null |
+| request_label | text (nullable) | 5-min bucket label (`rq1030to1034`, `rq1505to1509`); derived from `request_started_at` |
 | scheduled_at | timestamptz | when the scheduler planned to run |
 | started_at | timestamptz | collector start time |
 | finished_at | timestamptz | collector finish time |
@@ -37,7 +37,7 @@ Business timezone: `America/New_York`. Store `timestamptz` in UTC.
 | error | text | |
 | meta | jsonb | |
 
-**No unique constraint** (timestamps are ground truth; duplicates/near-duplicates allowed). Time cohorts assigned in analysis.
+**No unique constraint** (timestamps are ground truth; duplicates/near-duplicates allowed). `request_label` is computed from `request_started_at` floored to 5-minute buckets in ET timezone. Index on `(session_date, request_label)` for efficient querying.
 
 ### `underlying_snapshots`
 | Column | Type | Notes |

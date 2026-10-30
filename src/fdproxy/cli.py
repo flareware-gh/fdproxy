@@ -47,7 +47,7 @@ def main(
 @app.command()
 def collect(
     slot: str | None = typer.Option(
-        None, help="Slot name (m0935, t1530, etc.) or 'auto' (soft label)"
+        None, help="DEPRECATED: ignored (request_label derived from timestamp)"
     ),
     symbols: str | None = typer.Option(None, help="Comma-separated symbols (default: all)"),
     strict: bool = typer.Option(False, help="Exit 1 if any symbol fails"),
@@ -62,12 +62,12 @@ def collect(
     """
     Collect underlying quotes and 0DTE option chains.
 
-    Timestamp-first collection: always saves (except holidays) regardless of wall-clock
-    distance from named slots. Slot names are soft labels assigned when near a planned time.
+    Timestamp-first collection with 5-minute request labels.
+    Each run gets a request_label derived from request_started_at (floored to 5-min buckets in ET).
 
     Examples:
-        fdproxy collect --slot auto
-        fdproxy collect --slot t1530 --json
+        fdproxy collect
+        fdproxy collect --json
         fdproxy collect --symbols SPY,QQQ --dry-run
         fdproxy collect --trigger-source github_actions --trigger-id $GITHUB_RUN_ID
     """
@@ -80,12 +80,17 @@ def collect(
     )
 
     try:
+        # Warn if deprecated --slot flag is used
+        if slot is not None:
+            console.print(
+                "[yellow]Warning:[/yellow] --slot is deprecated and ignored. request_label is now derived from request_started_at timestamp."
+            )
+
         # Build trigger envelope from flags and environment
         trigger = TriggerEnvelope(
             trigger_source=trigger_source or os.getenv("FDPROXY_TRIGGER_SOURCE"),
             trigger_id=trigger_id or os.getenv("GITHUB_RUN_ID") or os.getenv("FDPROXY_TRIGGER_ID"),
             intended_at=datetime.fromisoformat(intended_at) if intended_at else None,
-            intended_slot=slot if slot and slot != "auto" else None,
             symbols=symbols.split(",") if symbols else None,
         )
 

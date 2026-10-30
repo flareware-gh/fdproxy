@@ -62,14 +62,11 @@ fdproxy doctor --json
 
 ### Collect - Gather Market Data
 
-Collect underlying quotes and 0DTE option chains. The collector uses **timestamp-first** logic: it always saves data (except holidays) regardless of wall-clock distance from named slots. Slot names are soft labels assigned when near a planned time (±30 min).
+Collect underlying quotes and 0DTE option chains. The collector uses **timestamp-first** logic with **5-minute request labels**. Each snapshot run gets a `request_label` derived from `request_started_at` (floored to 5-minute buckets in ET), e.g., `rq1030to1034`, `rq1505to1509`.
 
 ```bash
-# Collect with auto slot assignment (label with nearest slot if within ±30 min, else null)
-fdproxy collect --slot auto
-
-# Collect with an intended slot label
-fdproxy collect --slot t1530
+# Simple collection (request_label computed automatically)
+fdproxy collect
 
 # Collect specific symbols only
 fdproxy collect --symbols SPY,QQQ

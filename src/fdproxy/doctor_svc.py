@@ -4,7 +4,7 @@ import sys
 
 from fdproxy.config import get_supabase_service_role_key, get_supabase_url
 from fdproxy.models import DoctorCheck
-from fdproxy.timeutil import find_nearest_slot, is_rth, now_et
+from fdproxy.timeutil import is_rth, now_et, request_label_from_dt
 
 
 def run_checks() -> list[DoctorCheck]:
@@ -124,21 +124,17 @@ def check_yahoo_connectivity() -> DoctorCheck:
 
 
 def check_time_info() -> DoctorCheck:
-    """Check current ET time and slot info."""
+    """Check current ET time and request_label."""
     try:
         now = now_et()
-        nearest_slot = find_nearest_slot(now)
         in_rth = is_rth(now)
+        current_label = request_label_from_dt(now)
 
         detail_parts = [
             f"ET: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}",
             f"RTH: {in_rth}",
+            f"Current request_label: {current_label}",
         ]
-
-        if nearest_slot:
-            detail_parts.append(f"Nearest slot: {nearest_slot}")
-        else:
-            detail_parts.append("No slot within ±10min")
 
         return DoctorCheck(name="time_info", ok=True, detail=", ".join(detail_parts))
     except Exception as e:

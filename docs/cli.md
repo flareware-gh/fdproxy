@@ -54,7 +54,7 @@ fdproxy doctor [--json]
 
 Collect underlying quotes and 0DTE option chains.
 
-**Timestamp-first logic:** Always saves data (except holidays) regardless of wall-clock distance from named slots. Slot names are soft labels assigned when near a planned time (±30 min).
+**Timestamp-first logic with 5-minute request labels:** Each snapshot run gets a `request_label` derived from `request_started_at` (floored to 5-minute buckets in ET timezone). Examples: `rq1030to1034`, `rq1505to1509`, `rq1435to1439`.
 
 **Usage:**
 ```bash
@@ -65,7 +65,7 @@ fdproxy collect [OPTIONS]
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
-| `--slot` | str | `None` | Slot name (`m0935`, `t1530`, etc.) or `auto` (soft label) |
+| `--slot` | str | `None` | **DEPRECATED:** ignored (request_label derived from timestamp) |
 | `--symbols` | str | `None` | Comma-separated symbols (default: all) |
 | `--strict` | bool | `False` | Exit 1 if any symbol fails |
 | `--dry-run` | bool | `False` | Fetch and compute without DB writes |
@@ -86,11 +86,8 @@ fdproxy collect [OPTIONS]
 **Examples:**
 
 ```bash
-# Auto slot assignment (nearest within ±30 min, or null)
-fdproxy collect --slot auto
-
-# Explicit intended slot label
-fdproxy collect --slot t1530
+# Simple collection (request_label computed from timestamp)
+fdproxy collect
 
 # Specific symbols
 fdproxy collect --symbols SPY,QQQ
@@ -99,18 +96,16 @@ fdproxy collect --symbols SPY,QQQ
 fdproxy collect --dry-run --json
 
 # Strict mode (fail on any symbol error)
-fdproxy collect --slot t1530 --strict
+fdproxy collect --strict
 
 # From GitHub Actions (with trigger metadata)
 fdproxy collect \
-  --slot auto \
   --trigger-source github_actions \
   --trigger-id $GITHUB_RUN_ID \
   --json
 
 # Manual collection with intended time
 fdproxy collect \
-  --slot t1530 \
   --trigger-source manual \
   --intended-at 2026-10-30T15:30:00-04:00
 ```
@@ -123,7 +118,7 @@ fdproxy collect \
   "collector_version": "0.1.0",
   "data": {
     "session_date": "2026-10-30",
-    "intended_slot": "t1530",
+    "request_label": "rq1530to1534",
     "status": "ok",
     "symbols_attempted": ["SPY", "QQQ", "SMH", "XLF", "XLE", "HYG"],
     "symbols_success": ["SPY", "QQQ", "SMH", "XLF", "XLE", "HYG"],
@@ -142,22 +137,24 @@ fdproxy collect \
 
 **Behavior:**
 
-1. **Slot assignment:**
-   - `--slot auto` or omitted: Assign nearest planned slot if within ±30 min, else `null`
-   - `--slot <name>`: Use `<name>` as `intended_slot` (soft label, never an error)
+1. **Request label:**
+   - Computed from `request_started_at` (recorded immediately before first API call)
+   - Floored to 5-minute buckets in ET timezone
+   - Format: `rqHHmmtoHHmm` (e.g., `rq1030to1034` for 10:30-10:34 window)
 
 2. **Holiday/weekend:**
-   - Creates run with `status: "skipped_holiday"`, exits 0
+   - Creates run with `status: "skipped_holiday"`, `request_label` from wall-clock, exits 0
 
 3. **Outside RTH:**
    - Logs warning but proceeds (manual tests must work)
+   - `request_label` still assigned normally
 
 4. **Symbol failures:**
    - Normal mode: Log failure, continue, set `status: "partial"`, exit 0
    - Strict mode: Stop immediately, set `status: "failed"`, exit 1
 
 5. **Timestamps:**
-   - `request_started_at`: Recorded immediately before first Yahoo API request
+   - `request_started_at`: Recorded immediately before first Yahoo API request (basis for `request_label`)
    - `request_finished_at`: Recorded after last Yahoo API response
 
 6. **Database:**
@@ -300,15 +297,9 @@ echo "Collection completed: run_id=$RUN_ID, status=$STATUS"
 
 ## Troubleshooting
 
-### "No slot within ±30 minutes"
-
-**Before (old behavior):** This was an error that stopped collection.
-
-**After (new behavior):** Collection proceeds with `intended_slot: null`. This is normal and expected when running outside the planned schedule.
-
 ### "Collection outside regular trading hours"
 
-This is a warning, not an error. Collection proceeds for manual testing purposes. Yahoo Finance data may be delayed or stale outside RTH.
+This is a warning, not an error. Collection proceeds for manual testing purposes with a valid `request_label`. Yahoo Finance data may be delayed or stale outside RTH.
 
 ### "Some checks failed" (doctor)
 

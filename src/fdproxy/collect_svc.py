@@ -14,11 +14,11 @@ from fdproxy.feeds.yahoo import YahooFeed
 from fdproxy.greeks import compute_delta_from_mid
 from fdproxy.models import CollectResult, OptionSnapshot, TriggerEnvelope
 from fdproxy.timeutil import (
-    find_nearest_slot,
     get_session_date,
     is_market_holiday,
     is_rth,
     now_et,
+    request_label_from_dt,
 )
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def run_collect(
     Run collection with timestamp-first logic.
 
     Args:
-        slot: Optional intended slot label or 'auto' (assigns nearest if within ±30 min, else None)
+        slot: Deprecated; ignored (kept for backward compatibility)
         symbols: List of symbols to collect (None = all)
         strict: Exit 1 if any symbol fails
         dry_run: Don't write to database
@@ -51,23 +51,14 @@ def run_collect(
     if trigger is None:
         trigger = TriggerEnvelope()
 
-    # Resolve intended_slot (soft label, never an error)
-    if slot is None or slot == "auto":
-        # Try to assign nearest slot within ±30 minutes
-        intended_slot = find_nearest_slot(now, window_minutes=30)
-    else:
-        # Use explicit slot as intended label
-        intended_slot = slot
-
-    # Override from trigger envelope if provided
-    if trigger.intended_slot:
-        intended_slot = trigger.intended_slot
-
     # Check if holiday/weekend
     if is_market_holiday(session_date):
+        # Still assign request_label from wall-clock
+        request_label = request_label_from_dt(now)
+
         result = CollectResult(
             session_date=session_date,
-            intended_slot=intended_slot,
+            request_label=request_label,
             status="skipped_holiday",
             symbols_attempted=[],
             symbols_success=[],
@@ -80,10 +71,10 @@ def run_collect(
         )
 
         if not dry_run:
-            # Still record the skip
+            # Still record the skip with request_label
             run_id = db.create_snapshot_run(
                 session_date=session_date,
-                intended_slot=intended_slot,
+                request_label=request_label,
                 scheduled_at=now,
                 feed_name=FEED_NAME,
                 collector_version=get_collector_version(),
@@ -109,25 +100,6 @@ def run_collect(
     # Initialize feed
     feed = YahooFeed()
 
-    # Create run record
-    scheduled_at = now
-    run_id = None
-    request_started_at = None
-    request_finished_at = None
-
-    if not dry_run:
-        run_id = db.create_snapshot_run(
-            session_date=session_date,
-            intended_slot=intended_slot,
-            scheduled_at=scheduled_at,
-            feed_name=FEED_NAME,
-            collector_version=get_collector_version(),
-            status="started",
-            trigger_source=trigger.trigger_source,
-            trigger_id=trigger.trigger_id,
-            intended_at=trigger.intended_at,
-        )
-
     # Collect data
     symbols_success = []
     symbols_failed = []
@@ -137,6 +109,27 @@ def run_collect(
 
     # Record request_started_at immediately before first API call
     request_started_at = now_et()
+
+    # Compute request_label from request_started_at
+    request_label = request_label_from_dt(request_started_at)
+
+    # Create run record with request_label
+    scheduled_at = now
+    run_id = None
+    request_finished_at = None
+
+    if not dry_run:
+        run_id = db.create_snapshot_run(
+            session_date=session_date,
+            request_label=request_label,
+            scheduled_at=scheduled_at,
+            feed_name=FEED_NAME,
+            collector_version=get_collector_version(),
+            status="started",
+            trigger_source=trigger.trigger_source,
+            trigger_id=trigger.trigger_id,
+            intended_at=trigger.intended_at,
+        )
 
     for symbol in target_symbols:
         try:
@@ -178,7 +171,7 @@ def run_collect(
 
                 return CollectResult(
                     session_date=session_date,
-                    intended_slot=intended_slot,
+                    request_label=request_label,
                     status=status,
                     symbols_attempted=target_symbols,
                     symbols_success=symbols_success,
@@ -225,7 +218,7 @@ def run_collect(
 
     return CollectResult(
         session_date=session_date,
-        intended_slot=intended_slot,
+        request_label=request_label,
         status=status,
         symbols_attempted=target_symbols,
         symbols_success=symbols_success,
