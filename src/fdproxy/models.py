@@ -6,6 +6,16 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class TriggerEnvelope(BaseModel):
+    """Trigger metadata for a collection run."""
+
+    trigger_source: str | None = None
+    trigger_id: str | None = None
+    intended_at: datetime | None = None
+    intended_slot: str | None = None
+    symbols: list[str] | None = None
+
+
 class JsonEnvelope(BaseModel):
     """Standard JSON envelope for all commands."""
 
@@ -70,7 +80,7 @@ class CollectResult(BaseModel):
     """Result of a collect operation."""
 
     session_date: date
-    slot: str
+    intended_slot: str | None
     status: str
     symbols_attempted: list[str]
     symbols_success: list[str]
@@ -78,3 +88,8 @@ class CollectResult(BaseModel):
     option_count: int
     bucket_picks_count: int
     run_id: str | None = None
+    request_started_at: datetime | None = None
+    request_finished_at: datetime | None = None
+    trigger_source: str | None = None
+    trigger_id: str | None = None
+    intended_at: datetime | None = None

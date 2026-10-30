@@ -27,6 +27,7 @@ Delayed chains are acceptable for research purposes. Every stored row is tagged 
 
 - **[PLAN.md](PLAN.md)** — Full project plan: goals, research architecture, phases, snapshot schedule, and data honesty principles
 - **[SCHEMA.md](SCHEMA.md)** — Supabase database schema for instruments, snapshots, labels, and contract outcomes
+- **[docs/timestamp-first-collection.md](docs/timestamp-first-collection.md)** — Timestamp-first collection design: problem, solution, migration guide
 
 ## Installation
 
@@ -61,26 +62,29 @@ fdproxy doctor --json
 
 ### Collect - Gather Market Data
 
-Collect underlying quotes and 0DTE option chains:
+Collect underlying quotes and 0DTE option chains. The collector uses **timestamp-first** logic: it always saves data (except holidays) regardless of wall-clock distance from named slots. Slot names are soft labels assigned when near a planned time (±30 min).
 
 ```bash
-# Collect for a specific slot
-fdproxy collect --slot t1530
-
-# Auto-detect nearest slot (within ±5 minutes)
+# Collect with auto slot assignment (label with nearest slot if within ±30 min, else null)
 fdproxy collect --slot auto
 
+# Collect with an intended slot label
+fdproxy collect --slot t1530
+
 # Collect specific symbols only
-fdproxy collect --symbols SPY,QQQ --slot t1530
+fdproxy collect --symbols SPY,QQQ
 
 # Dry run (no database writes)
-fdproxy collect --slot t1530 --dry-run
+fdproxy collect --dry-run
 
 # JSON output for agents
-fdproxy collect --slot auto --json
+fdproxy collect --json
 
 # Strict mode (fail if any symbol errors)
-fdproxy collect --slot t1530 --strict
+fdproxy collect --strict
+
+# Specify trigger metadata (typically from CI/scheduler)
+fdproxy collect --trigger-source github_actions --trigger-id $GITHUB_RUN_ID
 ```
 
 ### Status - View Collection Health

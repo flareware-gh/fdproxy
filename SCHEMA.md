@@ -22,17 +22,22 @@ Business timezone: `America/New_York`. Store `timestamptz` in UTC.
 |--------|------|--------|
 | id | uuid PK | |
 | session_date | date | ET calendar date |
-| slot | text | see PLAN schedule (`m0935`…`close`) |
-| scheduled_at | timestamptz | |
-| started_at | timestamptz | |
-| finished_at | timestamptz | |
+| intended_slot | text (nullable) | soft label (`m0935`…`close`); nearest planned slot or null |
+| scheduled_at | timestamptz | when the scheduler planned to run |
+| started_at | timestamptz | collector start time |
+| finished_at | timestamptz | collector finish time |
+| request_started_at | timestamptz | wall-clock immediately before first feed API request |
+| request_finished_at | timestamptz | wall-clock after last feed API response |
+| trigger_source | text | `github_actions`, `vercel_cron`, `manual`, `agent` |
+| trigger_id | text | e.g., GitHub run ID, Vercel deployment ID |
+| intended_at | timestamptz (nullable) | scheduler's aimed time (vs actual start) |
 | status | text | `ok` \| `partial` \| `failed` \| `skipped_holiday` |
 | collector_version | text | |
 | feed_name | text | e.g. `yahoo` |
 | error | text | |
 | meta | jsonb | |
 
-Unique: `(session_date, slot)`.
+**No unique constraint** (timestamps are ground truth; duplicates/near-duplicates allowed). Time cohorts assigned in analysis.
 
 ### `underlying_snapshots`
 | Column | Type | Notes |

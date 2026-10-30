@@ -44,14 +44,17 @@ def list_tables() -> list[str]:
 
 def create_snapshot_run(
     session_date: date,
-    slot: str,
+    intended_slot: str | None,
     scheduled_at: datetime,
     feed_name: str,
     collector_version: str,
     status: str = "started",
+    trigger_source: str | None = None,
+    trigger_id: str | None = None,
+    intended_at: datetime | None = None,
 ) -> str:
     """
-    Create or update a snapshot run.
+    Create a snapshot run (no longer upsert; always creates new row).
 
     Returns run_id (uuid as string).
     """
@@ -62,7 +65,7 @@ def create_snapshot_run(
     data = {
         "id": run_id,
         "session_date": session_date.isoformat(),
-        "slot": slot,
+        "intended_slot": intended_slot,
         "scheduled_at": scheduled_at.isoformat(),
         "started_at": datetime.utcnow().isoformat(),
         "status": status,
@@ -70,7 +73,15 @@ def create_snapshot_run(
         "collector_version": collector_version,
     }
 
-    client.table("snapshot_runs").upsert(data, on_conflict="session_date,slot").execute()
+    if trigger_source:
+        data["trigger_source"] = trigger_source
+    if trigger_id:
+        data["trigger_id"] = trigger_id
+    if intended_at:
+        data["intended_at"] = intended_at.isoformat()
+
+    # Insert (not upsert) - timestamps are ground truth, duplicates allowed
+    client.table("snapshot_runs").insert(data).execute()
 
     return run_id
 
@@ -80,8 +91,10 @@ def update_snapshot_run(
     status: str,
     error: str | None = None,
     meta: dict[str, Any] | None = None,
+    request_started_at: datetime | None = None,
+    request_finished_at: datetime | None = None,
 ) -> None:
-    """Update snapshot run status."""
+    """Update snapshot run status and timestamps."""
     client = get_client()
 
     data = {
@@ -95,6 +108,12 @@ def update_snapshot_run(
 
     if meta:
         data["meta"] = meta
+
+    if request_started_at:
+        data["request_started_at"] = request_started_at.isoformat()
+
+    if request_finished_at:
+        data["request_finished_at"] = request_finished_at.isoformat()
 
     client.table("snapshot_runs").update(data).eq("id", run_id).execute()
 
